@@ -18,7 +18,7 @@
 <header class="w-full h-16 border flex justify-center items-center">
 	<div class="max-w-6xl w-full flex justify-center items-center">
 		<div>
-			<h1>Heavenfest</h1>
+			<div class="cursor-pointer"><img src="dist/img/logo.png"></div>
 		</div>
 	</div>
 </header>
