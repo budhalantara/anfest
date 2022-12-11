@@ -1,6 +1,9 @@
 import { AUTH_REDIRECT_URI, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET } from '$env/static/private';
 import axios from 'axios';
+import dayjs from 'dayjs';
 import qs from 'qs';
+import { decrypt, encrypt } from './encryption';
+import pgPool from './pg';
 
 const config = {
 	headers: {
@@ -23,28 +26,59 @@ const config = {
  * @property {string} expires_in
  * @property {string} refresh_token
  * @property {string} scope
+ * @property {Date} created_at
  * @return {Promise<OAuthToken>}
  */
 async function getOauthToken({ code, refreshToken }) {
-	let grant_type = '';
+	let data;
 	if (code) {
-		grant_type = 'authorization_code';
+		data = {
+			code,
+			grant_type: 'authorization_code',
+			redirect_uri: AUTH_REDIRECT_URI,
+		};
 	} else if (refreshToken) {
-		grant_type = 'refresh_token';
+		data = {
+			refresh_token: refreshToken,
+			grant_type: 'refresh_token',
+		};
 	}
 
 	const res = await axios.post(
 		'https://accounts.spotify.com/api/token',
-		qs.stringify({
-			code,
-			refresh_token: refreshToken,
-			grant_type,
-			redirect_uri: AUTH_REDIRECT_URI,
-		}),
+		qs.stringify(data),
 		config
 	);
 
-	return res.data;
+	return { ...res.data, created_at: new Date() };
 }
 
-export default { getOauthToken };
+/**
+ * @param {number|string} userId
+ * @param {string} encryptedOauthData
+ *
+ * @return {Promise<OAuthToken>}
+ */
+async function handleRefreshToken(userId, encryptedOauthData) {
+	let oauthData = JSON.parse(decrypt(encryptedOauthData));
+
+	if (dayjs().diff(oauthData.created_at, 'seconds') >= oauthData.expires_in - 5) {
+		const newOauthData = await getOauthToken({ refreshToken: oauthData.refresh_token });
+
+		oauthData = {
+			...oauthData,
+			...newOauthData,
+		};
+
+		await pgPool.query(
+			`UPDATE users
+			SET spotify_oauth_data = $1
+			WHERE id = $2`,
+			[encrypt(JSON.stringify(oauthData)), userId]
+		);
+	}
+
+	return oauthData;
+}
+
+export default { getOauthToken, handleRefreshToken };
