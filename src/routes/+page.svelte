@@ -4,6 +4,7 @@
 	import axios from 'axios';
 	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
+	import html2canvas from 'html2canvas';
 
 	/** @type {import('./$types').PageData} */
 	export let data;
@@ -16,6 +17,25 @@
 
 	function logout() {
 		goto('/auth/logout');
+	}
+
+	/**
+	 * @type {HTMLElement}
+	 */
+	let flyer;
+
+	function save() {
+		if (!flyer) {
+			return;
+		}
+
+		html2canvas(flyer, { scale: 4 }).then((canvas) => {
+			const dataURL = canvas.toDataURL('image/png');
+			const anchor = document.createElement('a');
+			anchor.download = 'anfest.png';
+			anchor.href = dataURL;
+			anchor.click();
+		});
 	}
 
 	/**
@@ -41,17 +61,9 @@
 	</div>
 </header>
 
-{#each sections || [] as section, i}
-	<ul>
-		section {i}
-		{#each section as artist}
-			{artist} |&nbsp;
-		{/each}
-	</ul>
-{/each}
+Name : {data.userName}
 
-<p>Popularity: {popularity}</p>
-
+<br />
 <a href="/?time_range=short_term">Last 4 weeks</a> |
 <a href="/?time_range=medium_term">Last 6 months</a> |
 <a href="/?time_range=long_term">All-time</a>
@@ -60,7 +72,39 @@
 	<div
 		class="flex sm:flex-1 justify-center lg:justify-end items-center mt-5 lg:mt-0 mx-5 sm:mx-0 lg:w-[55vw] lg:p-10 md:p-10"
 	>
-		<div class="w-[40rem] h-[40rem] bg-purple-500" />
+		<div class="w-[40rem] h-[40rem] bg-black text-white font-[Poppins] p-6" bind:this={flyer}>
+			<h1 class="text-center text-3xl font-bold italic">ANFEST</h1>
+			<h3 class="text-center py-4">presented by anfest</h3>
+			{#each sections as artists}
+				<div class="my-6 text-center">
+					<span class="text-5xl leading-[0.8rem] m-0" style="font-family: Passion One">
+						{artists.shift()?.toUpperCase()}
+					</span>
+
+					<div class="font-[Poppins] font-bold text-2xl leading-6">
+						{#each artists.splice(0, 3) as artist, i}
+							<span>{artist?.toUpperCase()}</span>
+							{#if i < 2}
+								<span class="text-white">• </span>
+							{/if}
+						{/each}
+					</div>
+
+					<div class="font-[Poppins] font-bold text-lg leading-5">
+						{#each artists as artist, i}
+							<span>{artist?.toUpperCase()}</span>
+							{#if i < 7}
+								<span class="text-white">• </span>
+							{/if}
+						{/each}
+					</div>
+					<!-- {#each section as artist}
+						
+					{/each} -->
+				</div>
+			{/each}
+		</div>
+		<!-- <p>Popularity: {popularity}</p> -->
 	</div>
 	<div
 		class="flex sm:flex-1 flex-col items-center justify-center p-5 sm:p-10 md:p-5 lg:p-10 text-center mb-10 mt-2 sm:mt-0"
@@ -95,6 +139,12 @@
 							Sign in with Last.fm
 						</button> -->
 					{:else}
+						<button
+							class="bg-black hover:bg-slate-800 py-2 px-4 rounded text-white font-semibold cursor-pointer sm:mr-3"
+							on:click={save}
+						>
+							Save
+						</button>
 						<button
 							class="bg-red-500 hover:bg-red-600 py-2 px-4 rounded text-white font-semibold cursor-pointer sm:mr-3"
 							on:click={logout}

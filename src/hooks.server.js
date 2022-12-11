@@ -10,11 +10,14 @@ export async function handle({ event, resolve }) {
 		event.locals.isLoggedIn = false;
 	} else {
 		try {
-			const { sub: userId } = authToken.validate(accessToken);
+			// @ts-ignore
+			const { sub: userId, name: userName } = authToken.validate(accessToken);
 			// @ts-ignore
 			event.locals.isLoggedIn = true;
 			// @ts-ignore
 			event.locals.userId = userId;
+			// @ts-ignore
+			event.locals.userName = userName;
 		} catch {
 			// @ts-ignore
 			event.locals.isLoggedIn = false;
