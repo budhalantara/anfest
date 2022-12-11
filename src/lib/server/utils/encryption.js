@@ -9,9 +9,8 @@ const key = Buffer.from(SESSION_ENCRYPTION_KEY, 'base64');
 function encrypt(plaintext) {
 	const iv = crypto.randomBytes(16);
 	const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-	const encrypted = cipher.update(plaintext);
 
-	return Buffer.concat([iv, encrypted]).toString('base64');
+	return Buffer.concat([iv, cipher.update(plaintext), cipher.final()]).toString('base64');
 }
 
 /**
@@ -23,7 +22,7 @@ function decrypt(encrypted) {
 	const content = buffer.subarray(16);
 	const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
 
-	return decipher.update(content).toString();
+	return Buffer.concat([decipher.update(content), decipher.final()]).toString();
 }
 
 export { encrypt, decrypt };
